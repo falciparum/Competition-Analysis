@@ -1,0 +1,164 @@
+freq.dist<-read.csv(file.choose(),header=T) #file: MOI Distributions.csv
+freq.dist<-freq.dist[1:3,]
+
+frac.cqr<-function(freqdist){
+  f<-freqdist[2:7]
+  p<-freqdist[8]
+  q<-freqdist[9]
+  x<-freqdist[10] 
+  num<-0
+  for(i in 2:6){
+    for(j in 1:(i-1)){
+      num<-num+f[i]*(j/i)*choose(i,j)*(p^j)*(q^(i-j))
+    }
+  }
+  denom<-0
+  for(i in 2:6){
+    for(j in 1:(i-1)){
+      denom<-denom+f[i]*choose(i,j)*(p^j)*(q^(i-j))
+    }
+  }
+  return(num/denom)
+}
+
+frac.cqr.cost<-function(freqdist){
+  f<-freqdist[2:7]
+  p<-freqdist[8]
+  q<-freqdist[9]
+  x<-freqdist[10] 
+  num<-0
+  for(i in 2:6){
+    for(j in 1:(i-1)){
+      num<-num+f[i]*(x*j/(i-j+x*j))*choose(i,j)*(p^j)*(q^(i-j))
+    }
+  }
+  denom<-0
+  for(i in 2:6){
+    for(j in 1:(i-1)){
+      denom<-denom+f[i]*choose(i,j)*(p^j)*(q^(i-j))
+    }
+  }
+  return(num/denom)
+}
+
+exp.ang<-frac.cqr(freq.dist[1,])
+exp.ang.cost<-frac.cqr.cost(freq.dist[1,])
+exp.gha<-0.5
+freq.dist[2,2:7]<-c(0,1,0,0,0,0)
+exp.gha.cost<-frac.cqr.cost(freq.dist[2,])
+exp.tan<-frac.cqr(freq.dist[3,])
+exp.tan.cost<-frac.cqr.cost(freq.dist[3,])
+
+logit<-function(x){
+  odds<-(x/(1-x))
+  logodds<-log(odds)
+  return(logodds)
+}
+###############################
+angola.df<-read.csv(file.choose(),header=T) #file: Angola Results.csv
+#col headings: sample.id, cvmnk.par, cviet.par, svmnt.par, location, drug
+ghana.df<-read.csv(file.choose(),header=T) #file: Ghana Results.csv
+#col headings: sample.id, cvmnk.par, cviet.par, timepoint, location
+tanzania.df<-read.csv(file.choose(),header=T) #file: Tanzania Results.csv
+#col headings: sample.id, cvmnk.par, cviet.par
+
+#no values in angola.df[,2] less than 2
+angola.df[which(angola.df[,3]<2),3]<-NA
+angola.df[which(angola.df[,4]<2),4]<-NA
+ghana.df[which(ghana.df[,2]<2),2]<-NA
+ghana.df[which(ghana.df[,3]<2),3]<-NA
+tanzania.df[which(tanzania.df[,2]<2),2]<-NA
+tanzania.df[which(tanzania.df[,3]<2),3]<-NA
+
+angola.par<-angola.df[which((is.na(angola.df[,2])==F|is.na(angola.df[,3])==F)&is.na(angola.df[,4])==T),2:3]
+ghana.par<-ghana.df[which(is.na(ghana.df[,2])==F|is.na(ghana.df[,3])==F),2:3]
+tanzania.par<-tanzania.df[which(is.na(tanzania.df[,2])==F|is.na(tanzania.df[,3])==F),2:3]
+
+angola.logpar<-log(angola.par,base=10)
+ghana.logpar<-log(ghana.par,base=10)
+tanzania.logpar<-log(tanzania.par,base=10)
+########################### Section 2 ######################################
+data1<-read.csv(file.choose(),header=T) #file: Mixed Infection Controls 1.csv
+data1[,1:2]<-data1[,1:2]/100
+attach(data1)
+model<-lm(percent.cviet~obs.pct)
+model1<-lm(percent.cviet~obs.pct+I(obs.pct^2)+I(obs.pct^3))
+anova(model,model1)
+
+model1.inv<-lm(obs.pct~percent.cviet+I(percent.cviet^2)+I(percent.cviet^3))
+coeff1.inv<-coefficients(model1.inv)
+
+data2<-read.csv(file.choose(),header=T) #file: Mixed Infection Controls 2.csv
+attach(data2)
+exp.log<-log(exp.total,base=10)
+obs.log<-log(obs.total,base=10)
+model2<-lm(exp.log~obs.log)
+coeff2<-coefficients(model2)
+model2.inv<-lm(obs.log~exp.log)
+coeff2.inv<-coefficients(model2.inv)
+
+correct.mixed<-function(data){ #data=logparasitemia matrix (2 columns, CVMNK and CVIET)
+  mixed<-which(is.na(data[,1])==F&is.na(data[,2])==F)
+  logpar.mixed<-data[mixed,]
+  par.mixed<-10^logpar.mixed
+  total<-rowSums(par.mixed)
+  log.total<-log(total,base=10)
+  pct.cviet<-par.mixed[,2]/total
+  corr.log.total<-coeff2[1]+coeff2[2]*log.total
+  corr.total<-10^corr.log.total
+  corr.pct.cviet<-coeff1[1]+coeff1[2]*pct.cviet+coeff1[3]*(pct.cviet^2)+coeff1[4]*(pct.cviet^3)
+  rep1<-rep(1,length(mixed))
+  corr.cvmnk.par<-corr.total*(rep1-corr.pct.cviet)
+  corr.cvmnk.logpar<-log(corr.cvmnk.par,base=10)
+  corr.cviet.par<-corr.total*corr.pct.cviet
+  corr.cviet.logpar<-log(corr.cviet.par,base=10)
+  corr.data<-data
+  corr.data[mixed,1]<-corr.cvmnk.logpar
+  corr.data[mixed,2]<-corr.cviet.logpar
+  return(corr.data)
+}
+
+corr.angola.logpar<-correct.mixed(angola.logpar)
+corr.ghana.logpar<-correct.mixed(ghana.logpar)
+corr.tanzania.logpar<-correct.mixed(tanzania.logpar)
+
+corr.angola.logpar[which(corr.angola.logpar[,2]=="NaN"),2]<-NA
+
+corr.angola.par<-10^corr.angola.logpar
+corr.ghana.par<-10^corr.ghana.logpar
+corr.tanzania.par<-10^corr.tanzania.logpar
+
+corr.angola.par<-11.57*corr.angola.par
+corr.ghana.par<-3*corr.ghana.par
+corr.tanzania.par<-18.08*corr.tanzania.par
+
+analyze.4.1<-function(data){ #data=parasitemia matrix
+  mixed<-data[which(is.na(data[,1])==F&is.na(data[,2])==F),]
+  frac.cviet<-mixed[,2]/rowSums(mixed)
+  return(frac.cviet)
+}
+
+ang.frac.cviet<-analyze.4.1(corr.angola.par)
+gha.frac.cviet<-analyze.4.1(corr.ghana.par)
+tan.frac.cviet<-analyze.4.1(corr.tanzania.par)
+
+logit.ang.frac<-log(ang.frac.cviet/(1-ang.frac.cviet))
+logit.gha.frac<-log(gha.frac.cviet/(1-gha.frac.cviet))
+logit.tan.frac<-log(tan.frac.cviet/(1-tan.frac.cviet))
+#########################
+t.test(logit.ang.frac,alternative="two.sided",mu=as.numeric(logit(exp.ang)))
+t.test(logit.gha.frac,alternative="two.sided",mu=as.numeric(logit(exp.gha)))
+t.test(logit.tan.frac,alternative="two.sided",mu=as.numeric(logit(exp.tan)))
+
+t.test(logit.ang.frac,alternative="two.sided",mu=as.numeric(logit(exp.ang.cost)))
+t.test(logit.gha.frac,alternative="two.sided",mu=as.numeric(logit(exp.gha.cost)))
+t.test(logit.tan.frac,alternative="two.sided",mu=as.numeric(logit(exp.tan.cost)))
+
+mean.logit.ang<-mean(logit.ang.frac)
+mean.ang<-(exp(mean.logit.ang))/(1+exp(mean.logit.ang))
+
+mean.logit.gha<-mean(logit.gha.frac)
+mean.gha<-(exp(mean.logit.gha))/(1+exp(mean.logit.gha))
+
+mean.logit.tan<-mean(logit.tan.frac)
+mean.tan<-(exp(mean.logit.tan))/(1+exp(mean.logit.tan))
