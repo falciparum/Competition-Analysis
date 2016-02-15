@@ -1,0 +1,570 @@
+################ Section 1 ##############################
+angola.df<-read.csv(file.choose(),header=T) #file: Angola Results.csv
+#col headings: sample.id, cvmnk.par, cviet.par, svmnt.par, location, drug
+ghana.df<-read.csv(file.choose(),header=T) #file: Ghana Results.csv
+#col headings: sample.id, cvmnk.par, cviet.par, timepoint, location
+tanzania.df<-read.csv(file.choose(),header=T) #file: Tanzania Results.csv
+#col headings: sample.id, cvmnk.par, cviet.par
+
+#no values in angola.df[,2] less than 2
+angola.df[which(angola.df[,3]<2),3]<-NA
+angola.df[which(angola.df[,4]<2),4]<-NA
+ghana.df[which(ghana.df[,2]<2),2]<-NA
+ghana.df[which(ghana.df[,3]<2),3]<-NA
+tanzania.df[which(tanzania.df[,2]<2),2]<-NA
+tanzania.df[which(tanzania.df[,3]<2),3]<-NA
+
+angola.par<-angola.df[which((is.na(angola.df[,2])==F|is.na(angola.df[,3])==F)&is.na(angola.df[,4])==T),2:3]
+ghana.par<-ghana.df[which(is.na(ghana.df[,2])==F|is.na(ghana.df[,3])==F),2:3]
+tanzania.par<-tanzania.df[which(is.na(tanzania.df[,2])==F|is.na(tanzania.df[,3])==F),2:3]
+
+angola.logpar<-log(angola.par,base=10)
+ghana.logpar<-log(ghana.par,base=10)
+tanzania.logpar<-log(tanzania.par,base=10)
+########################### Section 2 ######################################
+data1<-read.csv(file.choose(),header=T) #file: Mixed Infection Controls 1.csv
+data1[,1:2]<-data1[,1:2]/100
+attach(data1)
+model<-lm(percent.cviet~obs.pct)
+model1<-lm(percent.cviet~obs.pct+I(obs.pct^2)+I(obs.pct^3))
+anova(model,model1)
+plot(obs.pct[1:15],percent.cviet[1:15],pch=1,ylab="Fraction CQR (Actual)",xlab="Fraction CQR (Observed)",cex.lab=1.5,cex.axis=1.5)
+points(obs.pct[16:30],percent.cviet[16:30],pch=16,cex=0.8)
+points(obs.pct[31:45],percent.cviet[31:45],pch=2)
+points(obs.pct[46:60],percent.cviet[46:60],pch=8)
+points(obs.pct[61:75],percent.cviet[61:75],pch=15,cex=0.8)
+coeff1<-coefficients(model1)
+x<-seq(0,1,by=0.01)
+y<-rep(NA,101)
+for (i in 1:101){
+  y[i]<-coeff1[1]+(coeff1[2]*x[i])+(coeff1[3]*(x[i]^2))+(coeff1[4]*(x[i]^3))
+}
+points(x,y,type="l",lty="dashed",lwd=2)
+text(0.72,0.2,labels=expression(y==-1.431*x^3+1.922*x^2+0.498*x-0.004),cex=1.2)
+text(0.7,0.13,labels=expression(R^2==0.987),cex=1.2)
+
+par(mar=c(4.5,4.5,1,1))
+plot(percent.cviet[1:15],obs.pct[1:15],pch=1,xlab="Fraction CVIET (Actual)",ylab="Fraction CVIET (Observed)",cex=1.2,cex.axis=1.5,cex.lab=1.5)
+points(percent.cviet[16:30],obs.pct[16:30],pch=16,cex=1)
+points(percent.cviet[31:45],obs.pct[31:45],pch=2,cex=1.2)
+points(percent.cviet[46:60],obs.pct[46:60],pch=8,cex=1.2)
+points(percent.cviet[61:75],obs.pct[61:75],pch=15,cex=1)
+model1.inv<-lm(obs.pct~percent.cviet+I(percent.cviet^2)+I(percent.cviet^3))
+coeff1.inv<-coefficients(model1.inv)
+x<-seq(0,1,by=0.01)
+y<-rep(NA,101)
+for (i in 1:101){
+  y[i]<-coeff1.inv[1]+(coeff1.inv[2]*x[i])+(coeff1.inv[3]*(x[i]^2))+(coeff1.inv[4]*(x[i]^3))
+}
+points(x,y,type="l",col="black",lty="dashed",lwd=3)
+text(0.4,0.9,labels=expression(y==1.507*x^3-2.083*x^2+1.567*x+0.008),cex=1.4)
+text(0.3,0.82,labels=expression(R^2==0.989),cex=1.4)
+legend(0.56,0.37,c(expression(2%*%10^1~~parasites/uL),expression(2%*%10^2~~parasites/uL),expression(2%*%10^3~~parasites/uL),expression(2%*%10^4~~parasites/uL),expression(2%*%10^5~~parasites/uL)),pch=c(1,16,2,8,15),pt.cex=c(1.2,1,1.2,1.2,1),cex=1.2)
+####################### Section 3 #################################
+data2<-read.csv(file.choose(),header=T) #file: Mixed Infection Controls 2.csv
+attach(data2)
+exp.log<-log(exp.total,base=10)
+obs.log<-log(obs.total,base=10)
+plot(exp.log~obs.log)
+model2<-lm(exp.log~obs.log)
+coeff2<-coefficients(model2)
+abline(a=coeff2[1],b=coeff2[2])
+
+par(mar=c(5,5,3,3))
+plot(exp.log,obs.log,xlab="",ylab="",xlim=c(1,6),ylim=c(1,6),cex.axis=1.5,cex=1.2,cex.lab=1.5)
+axis(side=1,at=3.5,tick=F,labels=expression(paste(Log[10],"  Total Parasite Density (Actual)")),cex.axis=1.5,line=2.2)
+axis(side=2,at=3.5,tick=F,labels=expression(paste(Log[10],"  Total Parasite Density (Observed)")),cex.axis=1.5,line=2.2)
+model2.inv<-lm(obs.log~exp.log)
+coeff2.inv<-coefficients(model2.inv)
+abline(a=coeff2.inv[1],b=coeff2.inv[2],lty="dashed",lwd=3)
+summary(model2.inv)
+text(2.5,5.5,labels=expression(y==1.025*x+0.008),cex=1.4)
+text(2.5,5.05,labels=expression(R^2==0.997),cex=1.4)
+####################### Section 4 #################################
+correct.mixed<-function(data){ #data=logparasitemia matrix (2 columns, CVMNK and CVIET)
+  mixed<-which(is.na(data[,1])==F&is.na(data[,2])==F)
+  logpar.mixed<-data[mixed,]
+  par.mixed<-10^logpar.mixed
+  total<-rowSums(par.mixed)
+  log.total<-log(total,base=10)
+  pct.cviet<-par.mixed[,2]/total
+  corr.log.total<-coeff2[1]+coeff2[2]*log.total
+  corr.total<-10^corr.log.total
+  corr.pct.cviet<-coeff1[1]+coeff1[2]*pct.cviet+coeff1[3]*(pct.cviet^2)+coeff1[4]*(pct.cviet^3)
+  rep1<-rep(1,length(mixed))
+  corr.cvmnk.par<-corr.total*(rep1-corr.pct.cviet)
+  corr.cvmnk.logpar<-log(corr.cvmnk.par,base=10)
+  corr.cviet.par<-corr.total*corr.pct.cviet
+  corr.cviet.logpar<-log(corr.cviet.par,base=10)
+  corr.data<-data
+  corr.data[mixed,1]<-corr.cvmnk.logpar
+  corr.data[mixed,2]<-corr.cviet.logpar
+  return(corr.data)
+}
+
+corr.angola.logpar<-correct.mixed(angola.logpar)
+corr.ghana.logpar<-correct.mixed(ghana.logpar)
+corr.tanzania.logpar<-correct.mixed(tanzania.logpar)
+
+corr.angola.logpar[which(corr.angola.logpar[,2]=="NaN"),2]<-NA
+
+corr.angola.par<-10^corr.angola.logpar
+corr.ghana.par<-10^corr.ghana.logpar
+corr.tanzania.par<-10^corr.tanzania.logpar
+
+corr.angola.par<-11.57*corr.angola.par
+corr.ghana.par<-3*corr.ghana.par
+corr.tanzania.par<-18.08*corr.tanzania.par
+
+corr.angola.logpar<-log(corr.angola.par,base=10)
+corr.ghana.logpar<-log(corr.ghana.par,base=10)
+corr.tanzania.logpar<-log(corr.tanzania.par,base=10)
+################ Section 5 #################################################
+ghana.df.1<-ghana.df[which(is.na(ghana.df[,2])==F|is.na(ghana.df[,3])==F),]
+dim(ghana.df.1)
+attach(ghana.df.1)
+yendi.1<-corr.ghana.logpar[which(location=="Yendi"&timepoint=="1999-2000"),]
+yendi.3<-corr.ghana.logpar[which(location=="Yendi"&timepoint=="2005-2006"),]
+yendi.4<-corr.ghana.logpar[which(location=="Yendi"&timepoint=="2007-2008"),]
+yendi.5<-corr.ghana.logpar[which(location=="Yendi"&timepoint=="2010"),]
+
+navrongo.1<-corr.ghana.logpar[which(location=="Navrongo"&timepoint=="1999-2000"),]
+navrongo.2<-corr.ghana.logpar[which(location=="Navrongo"&timepoint=="2003-2004"),]
+navrongo.3<-corr.ghana.logpar[which(location=="Navrongo"&timepoint=="2005-2006"),]
+navrongo.4<-corr.ghana.logpar[which(location=="Navrongo"&timepoint=="2007-2008"),]
+navrongo.5<-corr.ghana.logpar[which(location=="Navrongo"&timepoint=="2010"),]
+
+hohoe.1<-corr.ghana.logpar[which(location=="Hohoe"&timepoint=="1999-2000"),]
+hohoe.2<-corr.ghana.logpar[which(location=="Hohoe"&timepoint=="2003-2004"),]
+hohoe.4<-corr.ghana.logpar[which(location=="Hohoe"&timepoint=="2007-2008"),]
+hohoe.5<-corr.ghana.logpar[which(location=="Hohoe"&timepoint=="2010"),]
+
+sunyani.1<-corr.ghana.logpar[which(location=="Sunyani"&timepoint=="1999-2001"),]
+sunyani.3<-corr.ghana.logpar[which(location=="Sunyani"&timepoint=="2005-2006"),]
+sunyani.4<-corr.ghana.logpar[which(location=="Sunyani"&timepoint=="2007-2008"),]
+
+ghana.1<-rbind(yendi.1,navrongo.1,hohoe.1,sunyani.1)
+ghana.2<-rbind(navrongo.2,hohoe.2)
+ghana.3<-rbind(yendi.3,navrongo.3,sunyani.3)
+ghana.4<-rbind(yendi.4,navrongo.4,hohoe.4,sunyani.4)
+ghana.5<-rbind(yendi.5,navrongo.5,hohoe.5)
+################## Section 6 #############################
+analyze.1<-function(data){   #data=logparasitemia matrix
+  cviet.pos<-which(is.na(data[,2])==F)
+  percent.resistant<-length(cviet.pos)/nrow(data)
+  return(percent.resistant)
+}
+pct.r.ghana<-analyze.1(corr.ghana.logpar)
+pct.r.tanzania<-analyze.1(corr.tanzania.logpar)
+pct.r.angola<-analyze.1(corr.angola.logpar)
+r.prev<-matrix(c(pct.r.ghana,pct.r.tanzania,pct.r.angola),nrow=1)
+colnames(r.prev)<-c("Ghana","Tanzania","Angola")
+r.prev
+#################### Section 7 ##############################
+ghana.RP.LT<-matrix(NA,nrow=5,ncol=5) #ghana resistance prevalence by location and time
+colnames(ghana.RP.LT)<-c("1999-2001","2003-2004","2005-2006","2007-2008","2010")
+rownames(ghana.RP.LT)<-c("Yendi","Navrongo","Hohoe","Sunyani","All")
+ghana.RP.LT[1,]<-c(analyze.1(yendi.1),NA,analyze.1(yendi.3),analyze.1(yendi.4),analyze.1(yendi.5))
+ghana.RP.LT[2,]<-c(analyze.1(navrongo.1),analyze.1(navrongo.2),analyze.1(navrongo.3),analyze.1(navrongo.4),analyze.1(navrongo.5))
+ghana.RP.LT[3,]<-c(analyze.1(hohoe.1),analyze.1(hohoe.2),NA,analyze.1(hohoe.4),analyze.1(hohoe.5))
+ghana.RP.LT[4,]<-c(analyze.1(sunyani.1),NA,analyze.1(sunyani.3),analyze.1(sunyani.4),NA)
+ghana.RP.LT[5,]<-c(analyze.1(ghana.1),analyze.1(ghana.2),analyze.1(ghana.3),analyze.1(ghana.4),analyze.1(ghana.5))
+ghana.RP.LT
+####################### Section 8 ###############################
+RP.df<-data.frame(rep(0,12),rep(0,12),rep(0,12))
+#timepoints: 0 (1999-2000), 4 (2003-2004), 6(2005-2006),8 (2007-2008), 10.5 (2010)
+RP.df[,1]<-c(ghana.RP.LT[1,c(3,4,5)],ghana.RP.LT[2,2:5],ghana.RP.LT[3,c(2,4,5)],ghana.RP.LT[4,c(3,4)])
+RP.df[,2]<-rep(c("Yendi","Navrongo","Hohoe","Sunyani"),c(3,4,3,2))
+RP.df[,3]<-c(6,8,10.5,4,6,8,10.5,4,8,10.5,6,8)
+colnames(RP.df)<-c("CQR.Prev","Location","Time")
+attach(RP.df)
+#for analysis of decline with respect to time and location, see CQR Decline Analysis 4-3-15
+####################### Section 9 ###########################
+par(mfrow=c(1,1))
+par(mar=c(5,6,4,2)+0.1)
+cols<-c("orangered","dodgerblue2","green2","darkorchid")
+pchs=c(16,15,17,18)
+lwdset<-3
+cexset<-1.5
+plot(c(-0.5,11),c(0,1),type="n",main="",xaxt="n",xlab="Sampling Timepoint",ylab="Fraction Positive for CQR",cex.axis=1.4,cex.lab=1.7,cex.main=1.4)
+axis(1,at=c(0,4,6,8,10.5),labels=c("1999-2000","2003-04","05-06","07-08","2010"),cex.axis=1.15)
+points(c(0,6,8,10.5),ghana.RP.LT[1,c(1,3,4,5)],col=cols[1],type="o",pch=pchs[1],lwd=lwdset,cex=cexset)
+points(c(0,4,6,8,10.5),ghana.RP.LT[2,],col=cols[2],type="o",pch=pchs[2],lwd=lwdset,cex=cexset)
+points(c(0,6,8,10.5),ghana.RP.LT[3,c(1,2,4,5)],col=cols[3],type="o",pch=pchs[3],lwd=lwdset,cex=cexset)
+points(c(0,6,8),ghana.RP.LT[4,c(1,3,4)],col=cols[4],type="o",pch=pchs[4],lwd=lwdset,cex=cexset+0.25)
+legend(0,0.4,c("Hohoe","Sunyani","Yendi","Navrongo"),lty=rep("solid",4),col=cols[c(3,4,1,2)],pch=pchs[c(3,4,1,2)],pt.cex=c(cexset,cexset+0.25,cexset,cexset),lwd=rep(lwdset,4),cex=1.2)
+abline(v=5,lty="dotted",col="gray30",lwd=3)
+segments(4,model$coefficients[1]+model$coefficients[2]*4,10.5,model$coefficients[1]+model$coefficients[2]*10.5,lwd=3,lty=5,col="black")
+segments(6.5,0.15,7.2,0.15,lty="dotted",lwd=3,col="gray30")
+text(8.7,0.115,labels="Chloroquine\n    Retired (2005)",col="gray30",cex=1.2)
+####################### Section 10 ########################
+analyze.2<-function(data){ #data=parasitemia matrix
+  par.single<-rowSums(data[which((is.na(data[,1])==T&is.na(data[,2])==F)|(is.na(data[,1])==F&is.na(data[,2])==T)),],na.rm=T) #total parasitemia of all single inf.
+  logpar.single<-log(par.single,base=10)
+  par.mixed<-rowSums(data[which(is.na(data[,1])==F&is.na(data[,2])==F),])
+  logpar.mixed<-log(par.mixed,base=10)
+  mean.logpar.single<-mean(logpar.single)
+  mean.logpar.mixed<-mean(logpar.mixed)
+  ttest<-t.test(logpar.single,logpar.mixed,var.equal=T)
+  ttest.pval<-ttest$p.value
+  logpar.matrix<-cbind(c(logpar.single,logpar.mixed),rep(c("single","mixed"),c(length(logpar.single),length(logpar.mixed))))
+  logpar.df<-data.frame(logpar.matrix)
+  colnames(logpar.df)<-c("Total.Par","Single.Mixed")
+  attach(logpar.df)
+  Total.Par<-as.numeric(Total.Par)
+  Single.Mixed<-factor(Single.Mixed)
+  FKtest<-fligner.test(Total.Par~Single.Mixed)
+  FK.pval<-FKtest$p.value
+  se.single<-sd(logpar.single)/sqrt(length(logpar.single))
+  se.mixed<-sd(logpar.mixed)/sqrt(length(logpar.mixed))
+  output<-matrix(c(mean.logpar.single,se.single,mean.logpar.mixed,se.mixed,ttest.pval,FK.pval),nrow=6,dimnames=list(c("Single Mean","Single SE","Mixed Mean","Mixed SE","T-test p-val","F-K Test p-val"),NULL))
+  return(output)
+}
+###########################	Section 11 ############################
+single.vs.mixed<-cbind(analyze.2(corr.angola.par),analyze.2(corr.ghana.par),analyze.2(corr.tanzania.par))
+colnames(single.vs.mixed)<-c("Angola","Ghana","Tanzania")
+single.vs.mixed
+single<-rbind(c(1.5,4.5,7.5),single.vs.mixed[1:2,])
+mixed<-rbind(c(2.5,5.5,8.5),single.vs.mixed[3:4,])
+########################### Section 12 #############################
+error.bar<-function(xval,mean,se){
+  bars<-segments(c(xval,xval,xval-0.05,xval-0.05),c(mean,mean,mean+se,mean-se),c(xval,xval,xval+0.05,xval+0.05),c(mean+se,mean-se,mean+se,mean-se),lwd=1.25)
+  return(bars)
+}
+########################### Section 13 ############################
+bracket<-function(xval1,xval2,mean1,mean2){
+  max<-max(mean1,mean2)+0.3
+  bracket<-segments(c(xval1,xval1,xval2),c(mean1,max,max),c(xval1,xval2,xval2),c(max,max,mean2),lwd=1.5)
+  return(bracket)
+}
+########################### Section 14 ############################
+pv<-function(x,mean1,mean2,pval){
+  y<-max(mean1,mean2)
+  sig<-""
+  if(pval>=0.05) {sig<-"NS"} 
+  else if (0.01<=pval&pval<0.05) {sig<-"*"}
+  else if (0.001<=pval&pval<0.01) {sig<-"**"}
+  else if (0.0001<=pval&pval<0.001) {sig<-"***"}
+  else {sig<-"****"}
+  text(x,y+0.55,labels=sig,cex=1.2)
+}
+########################### Section 15 ###########################
+reduction<-function(data){ 
+  high<-data[1,]
+  low<-data[3,]
+  prop.red<-rep(1,ncol(data))-10^(low-high)
+  return(prop.red)
+}
+########################## Section 16 ###########################
+par(mar=c(4,5,2,2))
+par(mfrow=c(1,1))
+#mediumgreen<-rgb(48/255,194/255,0/255,1)
+#lightgreen<-rgb(171/255,255/255,143/255,1)
+colors1<-c("white","gray70")
+barplot(single.vs.mixed[c(1,3),],beside=T,ylim=c(0,7.1),yaxt="n",col=colors1,xaxt="n",ylab="",cex.lab=1.25,cex.axis=1.25)
+apply(single,2,function(x,y,z) error.bar(single[1,],single[2,],single[3,]))
+apply(mixed,2,function(x,y,z) error.bar(mixed[1,],mixed[2,],mixed[3,]))
+legend(5,6.3,yjust=1,xjust=0.5,legend=c("Single-genotype (CQS or CQR)","Mixed-genotype (CQS + CQR)"),fill=colors1,bty="o",cex=1.2)
+axis(side=2,line=0.5,at=seq(0,5,1),tick=T,labels=T,cex.axis=1.25)
+#axis(at=c(1.5,2.5,4.5,5.5,7.5,8.5),labels=c("n=613","n=71","n=254","n=23","n=355","n=42"),side=1,tick=F,cex.axis=1.25,line=-2.5)
+#axis(side=2,at=2.5,tick=F,labels=expression(paste(Log[10],"  Parasitemia")),cex.axis=1.4,line=1.5)
+axis(side=2,at=2.5,tick=F,labels=expression(paste(Log[10]," total parasite density")),cex.axis=1.6,line=2)
+text(1.3,0.1,labels="n=320",srt=90,cex=1.2,adj=c(0,1),font=2)
+text(2.3,0.1,labels="n=64",srt=90,cex=1.2,adj=c(0,1),font=2)
+text(4.3,0.1,labels="n=579",srt=90,cex=1.2,adj=c(0,1),font=2)
+text(5.3,0.1,labels="n=101",srt=90,cex=1.2,adj=c(0,1),font=2)
+text(7.3,0.1,labels="n=244",srt=90,cex=1.2,adj=c(0,1),font=2)
+text(8.3,0.1,labels="n=33",srt=90,cex=1.2,adj=c(0,1),font=2)
+axis(at=c(2,5,8),labels=c("Angola","Ghana","Tanzania"),side=1,tick=F,cex.axis=1.4,line=-0.25)
+#bracket(1.7,2.3,single.vs.mixed[1,1],single.vs.mixed[3,1])
+#bracket(4.7,5.3,single.vs.mixed[1,2],single.vs.mixed[3,2])
+#bracket(7.7,8.3,single.vs.mixed[1,3],single.vs.mixed[3,3])
+#pv(2,single.vs.mixed[1,1],single.vs.mixed[3,1],single.vs.mixed[5,1])
+#pv(5,single.vs.mixed[1,2],single.vs.mixed[3,2],single.vs.mixed[5,2])
+#pv(8,single.vs.mixed[1,3],single.vs.mixed[3,3],single.vs.mixed[5,3])
+######################## Section 17 ##########################
+analyze.3<-function(data){ #data=logparasitemia matrix
+  cvmnk.single<-which(is.na(data[,1])==F&is.na(data[,2])==T)
+  cviet.single<-which(is.na(data[,1])==T&is.na(data[,2])==F)
+  logpar.cvmnk.single<-data[cvmnk.single,1]
+  logpar.cviet.single<-data[cviet.single,2]
+  mean.logpar.cvmnk.single<-mean(logpar.cvmnk.single)
+  mean.logpar.cviet.single<-mean(logpar.cviet.single)
+  ttest<-t.test(logpar.cvmnk.single,logpar.cviet.single,var.equal=T)
+  ttest.pval<-ttest$p.value
+  logpar.matrix<-cbind(c(logpar.cvmnk.single,logpar.cviet.single),rep(c("CVMNK","CVIET"),c(length(logpar.cvmnk.single),length(logpar.cviet.single))))
+  logpar.df<-data.frame(logpar.matrix)
+  colnames(logpar.df)<-c("LogPar","Genotype")
+  attach(logpar.df)
+  LogPar<-as.numeric(LogPar)
+  Genotype<-factor(Genotype)
+  FKtest<-fligner.test(LogPar~Genotype)
+  FK.pval<-FKtest$p.value
+  se.cvmnk<-sd(logpar.cvmnk.single)/sqrt(length(logpar.cvmnk.single))
+  se.cviet<-sd(logpar.cviet.single)/sqrt(length(logpar.cviet.single))
+  output<-matrix(c(mean.logpar.cvmnk.single,se.cvmnk,mean.logpar.cviet.single,se.cviet,ttest.pval,FK.pval),nrow=6,dimnames=list(c("CVMNK Mean","CVMNK SE","CVIET Mean","CVIET SE","T-test p-val","F-K Test p-val"),NULL))
+  return(output)
+}
+########################## Section 18 #########################
+single.genotype<-cbind(analyze.3(corr.angola.logpar),analyze.3(corr.ghana.logpar),analyze.3(corr.tanzania.logpar))
+colnames(single.genotype)<-c("Angola","Ghana","Tanzania")
+single.genotype
+
+reduction(single.genotype)
+########################### Section 19 ##########################
+analyze.4<-function(data){ #data=logparasitemia matrix
+  mixed<-which(is.na(data[,1])==F&is.na(data[,2])==F)
+  logpar.cvmnk.mixed<-data[mixed,1]
+  logpar.cviet.mixed<-data[mixed,2]
+  mean.logpar.cvmnk.mixed<-mean(logpar.cvmnk.mixed)
+  mean.logpar.cviet.mixed<-mean(logpar.cviet.mixed)
+  ttest<-t.test(logpar.cvmnk.mixed,logpar.cviet.mixed,var.equal=T,paired=T)
+  ttest.pval<-ttest$p.value
+  logpar.matrix<-cbind(c(logpar.cvmnk.mixed,logpar.cviet.mixed),rep(c("CVMNK","CVIET"),rep(length(mixed),2)))
+  logpar.df<-data.frame(logpar.matrix)
+  colnames(logpar.df)<-c("LogPar","Genotype")
+  attach(logpar.df)
+  LogPar<-as.numeric(LogPar)
+  Genotype<-factor(Genotype)
+  FKtest<-fligner.test(LogPar~Genotype)
+  FK.pval<-FKtest$p.value
+  se.cvmnk<-sd(logpar.cvmnk.mixed)/sqrt(length(logpar.cvmnk.mixed))
+  se.cviet<-sd(logpar.cviet.mixed)/sqrt(length(logpar.cviet.mixed))
+  output<-matrix(c(mean.logpar.cvmnk.mixed,se.cvmnk,mean.logpar.cviet.mixed,se.cviet,ttest.pval,FK.pval),nrow=6,dimnames=list(c("CVMNK Mean","CVMNK SE","CVIET Mean","CVIET SE","T-test p-val","F-K Test p-val"),NULL))
+  return(output)
+}
+########################### Section 20 #######################
+mixed.genotype<-cbind(analyze.4(corr.angola.logpar),analyze.4(corr.ghana.logpar),analyze.4(corr.tanzania.logpar))
+colnames(mixed.genotype)<-c("Angola","Ghana","Tanzania")
+mixed.genotype
+
+reduction(mixed.genotype)
+########################### Section 21 #######################
+analyze.4.1<-function(data){ #data=parasitemia matrix
+  mixed<-data[which(is.na(data[,1])==F&is.na(data[,2])==F),]
+  frac.cviet<-mixed[,2]/rowSums(mixed)
+  return(frac.cviet)
+}
+########################## Section 22 ##########################
+ang.frac.cviet<-analyze.4.1(corr.angola.par)
+gha.frac.cviet<-analyze.4.1(corr.ghana.par)
+tan.frac.cviet<-analyze.4.1(corr.tanzania.par)
+
+logit.ang.frac<-log(ang.frac.cviet/(1-ang.frac.cviet))
+logit.gha.frac<-log(gha.frac.cviet/(1-gha.frac.cviet))
+logit.tan.frac<-log(tan.frac.cviet/(1-tan.frac.cviet))
+plot(tan.frac.cviet,logit.tan.frac)
+####
+gha.frac.cviet.1<-analyze.4.1(ghana.1)
+gha.frac.cviet.2<-analyze.4.1(ghana.2)
+gha.frac.cviet.3<-analyze.4.1(ghana.3)
+gha.frac.cviet.4<-analyze.4.1(ghana.4)
+gha.frac.cviet.5<-analyze.4.1(ghana.5)
+####
+frac.cviet<-matrix(NA,nrow=length(c(ang.frac.cviet,gha.frac.cviet,tan.frac.cviet)),ncol=2)
+frac.cviet[,1]<-c(ang.frac.cviet,gha.frac.cviet,tan.frac.cviet)
+frac.cviet[,2]<-rep(c("Angola","Ghana","Tanzania"),c(length(ang.frac.cviet),length(gha.frac.cviet),length(tan.frac.cviet)))
+frac.cviet.df<-data.frame(frac.cviet,stringsAsFactors=F)
+colnames(frac.cviet.df)<-c("Frac.CVIET","Country")
+attach(frac.cviet.df)
+Frac.CVIET<-as.numeric(Frac.CVIET)
+Country<-as.factor(Country)
+par(mfrow=c(1,1))
+boxplot(Frac.CVIET~Country,ylab="Fraction CQR",cex.lab=1.3,cex.axis=1.2,range=0)
+length(ang.frac.cviet)
+length(gha.frac.cviet)
+length(tan.frac.cviet)
+text(1,median(ang.frac.cviet)-0.05,labels="n=64",cex=1.1)
+text(2,median(gha.frac.cviet)-0.05,labels="n=101",cex=1.1)
+text(3,median(tan.frac.cviet)-0.05,labels="n=33",cex=1.1)
+### Display of Frac CQR data vs null model, for M2M presentation
+frac.cviet<-cbind(rep(c(1,2,3),c(length(ang.frac.cviet),length(gha.frac.cviet),length(tan.frac.cviet))),c(ang.frac.cviet,gha.frac.cviet,tan.frac.cviet))
+
+par(mar=c(5,6,1,1))
+plot(jitter(frac.cviet[,1]),frac.cviet[,2],xaxt="n",yaxt="n",xlab="",ylab="",xlim=c(0.5,3.5),ylim=c(0,1.5),cex.axis=1.1,pch=16,type="n")
+mean.logit.ang<-mean(logit.ang.frac)
+mean.ang<-(exp(mean.logit.ang))/(1+exp(mean.logit.ang))
+segments(0.55,0.545,1.35,0.545,lwd=4,col="springgreen4")
+segments(0.55,0.402,1.35,0.402,lwd=4,col="darkorange1")
+segments(0.55,mean.ang,1.35,mean.ang,lwd=4,col="magenta4")
+mean.logit.gha<-mean(logit.gha.frac)
+mean.gha<-(exp(mean.logit.gha))/(1+exp(mean.logit.gha))
+segments(1.55,0.5,2.35,0.5,lwd=4,col="springgreen4")
+segments(1.55,0.232,2.35,0.232,lwd=4,col="darkorange1")
+segments(1.55,mean.gha,2.35,mean.gha,lwd=4,col="magenta4")
+mean.logit.tan<-mean(logit.tan.frac)
+mean.tan<-(exp(mean.logit.tan))/(1+exp(mean.logit.tan))
+segments(2.55,0.377,3.35,0.377,lwd=4,col="springgreen4")
+segments(2.55,0.329,3.35,0.329,lwd=4,col="darkorange1")
+segments(2.55,mean.tan,3.35,mean.tan,lwd=4,col="magenta4")
+points(jitter(frac.cviet[,1]),frac.cviet[,2],pch=16)
+axis(side=1,at=c(1,2,3),labels=c("Angola\nn=64","Ghana\nn=101","Tanzania\nn=33"),tick=F,line=1,cex.axis=1.4)
+axis(side=2,at=seq(0,1,by=0.2),seq(0,1,by=0.2),tick=T,line=0,cex.axis=1.4,las=1)
+axis(side=2,at=0.5,labels="Fraction CQR",tick=F,line=2.5,cex.axis=1.8)
+segments(0.60,mean.ang,0.60,0.545,lwd=2)
+#segments(1.3,mean.ang,1.3,0.402,lwd=2)
+segments(1.60,mean.gha,1.60,0.5,lwd=2)
+#segments(2.3,mean.gha,2.3,0.258,lwd=2)
+segments(2.60,mean.tan,2.60,0.377,lwd=2)
+segments(3.3,mean.tan,3.3,0.329,lwd=2)
+
+text(0.5,mean(c(mean.ang,0.545)),labels="*",srt=90,cex=1.4)
+text(1.5,mean(c(mean.gha,0.5)),labels="****",srt=90,cex=1.4)
+text(2.5,mean(c(mean.tan,0.377)),labels="****",srt=90,cex=1.4)
+text(3.4,mean(c(mean.tan,0.329)),labels="***",srt=90,cex=1.4)
+legend("topleft",col=c("springgreen4","darkorange1","magenta4"),lty="solid",lwd=4,legend=c("Expected mean (without fitness cost)","Expected mean (with fitness cost)","Observed mean"),cex=1.3,bty="n",x.intersp=0.5)
+
+
+###
+
+model<-aov(Frac.CVIET~Country)
+summary(model)
+length(which(Frac.CVIET<0.5))
+length(Frac.CVIET)
+prop.test(142,198,p=0.5)
+length(which(ang.frac.cviet<0.5))
+prop.test(40,64,p=0.5)
+length(which(gha.frac.cviet<0.5))
+prop.test(73,101,p=0.5)
+length(which(tan.frac.cviet<0.5))
+prop.test(29,33,p=0.5)
+########################## Section 23 #####################
+analyze.5<-function(data){ #data=logparasitemia matrix
+  cvmnk.single<-which(is.na(data[,1])==F&is.na(data[,2])==T)
+  mixed<-which(is.na(data[,1])==F&is.na(data[,2])==F)
+  logpar.cvmnk.single<-data[cvmnk.single,1]
+  logpar.cvmnk.mixed<-data[mixed,1]
+  mean.logpar.cvmnk.single<-mean(logpar.cvmnk.single)
+  mean.logpar.cvmnk.mixed<-mean(logpar.cvmnk.mixed)
+  ttest<-t.test(logpar.cvmnk.single,logpar.cvmnk.mixed,var.equal=T)
+  ttest.pval<-ttest$p.value
+  logpar.matrix<-cbind(c(logpar.cvmnk.single,logpar.cvmnk.mixed),rep(c("single","mixed"),c(length(logpar.cvmnk.single),length(logpar.cvmnk.mixed))))
+  logpar.df<-data.frame(logpar.matrix)
+  colnames(logpar.df)<-c("LogPar","Single.Mixed")
+  attach(logpar.df)
+  LogPar<-as.numeric(LogPar)
+  Genotype<-factor(Single.Mixed)
+  FKtest<-fligner.test(LogPar~Single.Mixed)
+  FK.pval<-FKtest$p.value
+  se.single<-sd(logpar.cvmnk.single)/sqrt(length(logpar.cvmnk.single))
+  se.mixed<-sd(logpar.cvmnk.mixed)/sqrt(length(logpar.cvmnk.mixed))
+  output<-matrix(c(mean.logpar.cvmnk.single,se.single,mean.logpar.cvmnk.mixed,se.mixed,ttest.pval,FK.pval),nrow=6,dimnames=list(c("CVMNK-Single Mean","CVMNK-Single SE","CVMNK-Mixed Mean","CVMNK-Mixed SE","T-test p-val","F-K Test p-val"),NULL))
+  return(output)
+}
+########################### Section 25 ##############################
+cvmnk.single.vs.mixed<-cbind(analyze.5(corr.angola.logpar),analyze.5(corr.ghana.logpar),analyze.5(corr.tanzania.logpar))
+colnames(cvmnk.single.vs.mixed)<-c("Angola","Ghana","Tanzania")
+cvmnk.single.vs.mixed
+reduction(cvmnk.single.vs.mixed)
+########################### Section 26 ##########################
+analyze.6<-function(data){ #data=logparasitemia matrix
+  cviet.single<-which(is.na(data[,1])==T&is.na(data[,2])==F)
+  mixed<-which(is.na(data[,1])==F&is.na(data[,2])==F)
+  logpar.cviet.single<-data[cviet.single,2]
+  logpar.cviet.mixed<-data[mixed,2]
+  mean.logpar.cviet.single<-mean(logpar.cviet.single)
+  mean.logpar.cviet.mixed<-mean(logpar.cviet.mixed)
+  ttest<-t.test(logpar.cviet.single,logpar.cviet.mixed,var.equal=T)
+  ttest.pval<-ttest$p.value
+  logpar.matrix<-cbind(c(logpar.cviet.single,logpar.cviet.mixed),rep(c("single","mixed"),c(length(logpar.cviet.single),length(logpar.cviet.mixed))))
+  logpar.df<-data.frame(logpar.matrix)
+  colnames(logpar.df)<-c("LogPar","Single.Mixed")
+  attach(logpar.df)
+  LogPar<-as.numeric(LogPar)
+  Genotype<-factor(Single.Mixed)
+  FKtest<-fligner.test(LogPar~Single.Mixed)
+  FK.pval<-FKtest$p.value
+  se.single<-sd(logpar.cviet.single)/sqrt(length(logpar.cviet.single))
+  se.mixed<-sd(logpar.cviet.mixed)/sqrt(length(logpar.cviet.mixed))
+  output<-matrix(c(mean.logpar.cviet.single,se.single,mean.logpar.cviet.mixed,se.mixed,ttest.pval,FK.pval),nrow=6,dimnames=list(c("CVIET-Single Mean","CVIET-Single SE","CVIET-Mixed Mean","CVIET-Mixed SE","T-test p-val","F-K Test p-val"),NULL))
+  return(output)
+}
+########################### Section 27 #########################
+cviet.single.vs.mixed<-cbind(analyze.6(corr.angola.logpar),analyze.6(corr.ghana.logpar),analyze.6(corr.tanzania.logpar))
+colnames(cviet.single.vs.mixed)<-c("Angola","Ghana","Tanzania")
+cviet.single.vs.mixed
+reduction(cviet.single.vs.mixed)
+########################### Section 28 ###########################
+genotype.singlemixed<-cbind(cvmnk.single.vs.mixed,cviet.single.vs.mixed)
+cols<-c(rep(c("white","gray70"),3),rep(c("white","gray70"),3))
+plot.new()
+barplot(genotype.singlemixed[c(1,3),],space=rep(c(2,0,0.5,0,0.5,0),2),beside=T,ylim=c(0,6.6),yaxp=c(0,5,5),col=cols,xaxt="n",yaxt="n",cex.lab=1.5,cex.axis=1.5)
+text(2.6,6.3,labels="Chloroquine-sensitive (CQS)",cex=1.15,adj=c(0,1))
+legend(5,6.1,fill=cols[1],legend="CQS only",xjust=1,yjust=1,cex=1.15,bty="n",x.intersp=0.25)
+legend(8.8,6.1,fill=cols[2],legend="CQS with CQR",xjust=1,yjust=1,cex=1.15,bty="n",x.intersp=0.25)
+text(11.6,6.3,labels="Chloroquine-resistant (CQR)",cex=1.15,adj=c(0,1))
+legend(14.1,6.1,fill=cols[7],legend="CQR Only",xjust=1,yjust=1,cex=1.15,bty="n",x.intersp=0.25)
+legend(17.8,6.1,fill=cols[8],legend="CQR with CQS",xjust=1,yjust=1,cex=1.15,bty="n",x.intersp=0.25)
+axis(side=2,at=seq(0,5,by=1),tick=T,labels=T,cex.axis=1.4,cex.lab=1.4)
+axis(side=2,at=2.5,tick=F,labels=expression(paste(Log[10],"  parasite density")),cex.axis=1.8,cex.lab=1.5,line=1.7)
+axis(side=1,at=c(3,5.5,8,12,14.5,17),tick=F,labels=c("Angola","Ghana","Tanzania","Angola","Ghana","Tanzania"),cex.axis=1.25,cex.lab=1.25,line=-0.3)
+rect(2,5.4,9,6.5)
+rect(11,5.4,18,6.5)
+text(2.5,0.1,labels="n=65",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(3.5,0.1,labels="n=64",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(5,0.1,labels="n=218",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(6,0.1,labels="n=101",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(7.5,0.1,labels="n=229",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(8.5,0.1,labels="n=33",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(11.5,0.1,labels="n=255",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(12.5,0.1,labels="n=64",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(14,0.1,labels="n=361",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(15,0.1,labels="n=101",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(16.5,0.1,labels="n=15",srt=90,cex=1.3,adj=c(0,1),font=2)
+text(17.5,0.1,labels="n=33",srt=90,cex=1.3,adj=c(0,1),font=2)
+cvmnk.single<-rbind(c(2.5,5,7.5),cvmnk.single.vs.mixed[1:2,])
+cvmnk.mixed<-rbind(c(3.5,6,8.5),cvmnk.single.vs.mixed[3:4,])
+apply(cvmnk.single,2,function(x,y,z) error.bar(cvmnk.single[1,],cvmnk.single[2,],cvmnk.single[3,]))
+apply(cvmnk.mixed,2,function(x,y,z) error.bar(cvmnk.mixed[1,],cvmnk.mixed[2,],cvmnk.mixed[3,]))
+cviet.single<-rbind(c(11.5,14,16.5),cviet.single.vs.mixed[1:2,])
+cviet.mixed<-rbind(c(12.5,15,17.5),cviet.single.vs.mixed[3:4,])
+apply(cviet.single,2,function(x,y,z) error.bar(cviet.single[1,],cviet.single[2,],cviet.single[3,]))
+apply(cviet.mixed,2,function(x,y,z) error.bar(cviet.mixed[1,],cviet.mixed[2,],cviet.mixed[3,]))
+abline(v=10,lty="dashed",col="black",lwd=1)
+#bracket(2.7,3.3,genotype.singlemixed[1,1],genotype.singlemixed[3,1])
+#bracket(5.2,5.8,genotype.singlemixed[1,2],genotype.singlemixed[3,2])
+#bracket(7.7,8.3,genotype.singlemixed[1,3],genotype.singlemixed[3,3])
+#bracket(11.7,12.3,genotype.singlemixed[1,4],genotype.singlemixed[3,4])
+#bracket(14.2,14.8,genotype.singlemixed[1,5],genotype.singlemixed[3,5])
+#bracket(16.7,17.3,genotype.singlemixed[1,6],genotype.singlemixed[3,6])
+#pv(3,genotype.singlemixed[1,1],genotype.singlemixed[3,1],genotype.singlemixed[5,1])
+#pv(5.5,genotype.singlemixed[1,2],genotype.singlemixed[3,2],genotype.singlemixed[5,2])
+#pv(8,genotype.singlemixed[1,3],genotype.singlemixed[3,3],genotype.singlemixed[5,3])
+#pv(12,genotype.singlemixed[1,4],genotype.singlemixed[3,4],genotype.singlemixed[5,4])
+#pv(14.5,genotype.singlemixed[1,5],genotype.singlemixed[3,5],genotype.singlemixed[5,5])
+#pv(17,genotype.singlemixed[1,6],genotype.singlemixed[3,6],genotype.singlemixed[5,6])
+
+###################### Section 29 ##############################
+prop<-matrix(NA,nrow=3,ncol=3)
+colnames(prop)<-c("CQS Only","CQR Only","CQS+CQR")
+rownames(prop)<-c("Angola","Ghana","Tanzania")
+prop[1,1]<-length(which(is.na(corr.angola.logpar[,1])==F&is.na(corr.angola.logpar[,2])==T))/nrow(corr.angola.logpar)
+prop[1,2]<-length(which(is.na(corr.angola.logpar[,1])==T&is.na(corr.angola.logpar[,2])==F))/nrow(corr.angola.logpar)
+prop[1,3]<-length(which(is.na(corr.angola.logpar[,1])==F&is.na(corr.angola.logpar[,2])==F))/nrow(corr.angola.logpar)
+prop[2,1]<-length(which(is.na(corr.ghana.logpar[,1])==F&is.na(corr.ghana.logpar[,2])==T))/nrow(corr.ghana.logpar)
+prop[2,2]<-length(which(is.na(corr.ghana.logpar[,1])==T&is.na(corr.ghana.logpar[,2])==F))/nrow(corr.ghana.logpar)
+prop[2,3]<-length(which(is.na(corr.ghana.logpar[,1])==F&is.na(corr.ghana.logpar[,2])==F))/nrow(corr.ghana.logpar)
+prop[3,1]<-length(which(is.na(corr.tanzania.logpar[,1])==F&is.na(corr.tanzania.logpar[,2])==T))/nrow(corr.tanzania.logpar)
+prop[3,2]<-length(which(is.na(corr.tanzania.logpar[,1])==T&is.na(corr.tanzania.logpar[,2])==F))/nrow(corr.tanzania.logpar)
+prop[3,3]<-length(which(is.na(corr.tanzania.logpar[,1])==F&is.na(corr.tanzania.logpar[,2])==F))/nrow(corr.tanzania.logpar)
+prop
+rowSums(prop)
+total<-matrix(NA,nrow=3,ncol=3)
+total[1,]<-prop[1,]*nrow(corr.angola.logpar)
+total[2,]<-prop[2,]*nrow(corr.ghana.logpar)
+total[3,]<-prop[3,]*nrow(corr.tanzania.logpar)
+colnames(total)<-colnames(prop)
+rownames(total)<-rownames(prop)
+total
+prop.t<-t(prop)
+prop.t
+total.t<-t(total)
+total.t
+######################### Section 30 ################################
+single.mixed<-cbind(total[,3],total[,1]+total[,2])
+single.mixed
+prop.test(single.mixed,alternative="two.sided")
+
+cqs.cqr<-total[,1:2]
+cqs.cqr
+prop.test(cqs.cqr,alternative="two.sided")
