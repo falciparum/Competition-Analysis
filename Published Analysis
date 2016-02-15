@@ -1,0 +1,282 @@
+###Competition analysis 10 Nov 2015
+
+#Attach: "Data Master File 1"
+competition=read.csv(file.choose())
+attach(competition)
+names(competition)
+
+##ANALYSIS ACROSS THREE COUNTRIES
+
+#Create data subsets by country
+Angoladata=subset(competition,Country=="Angola")
+Ghanadata=subset(competition,Country=="Ghana")
+Tanzaniadata=subset(competition,Country=="Tanzania")
+
+#Plot data by country
+par(mfrow=c(1,3),mar=c(4, 4, 2, 0.5),mgp=c(2.6, 0.8, 0))
+with((Angoladata),interaction.plot(SingleMixed,Genotype,Logpar))
+mtext("Angola",side=3,line=0.5)
+with((Ghanadata),interaction.plot(SingleMixed,Genotype,Logpar))
+mtext("Ghana",side=3,line=0.5)
+with((Tanzaniadata),interaction.plot(SingleMixed,Genotype,Logpar))
+mtext("Tanzania",side=3,line=0.5)
+
+#Linear mixed effects model that includes Country as fixed effect and Site as random effect
+#lme4 does not compute p values, see site: http://glmm.wikidot.com/faq
+library(lme4)
+model=lmer(Logpar~SingleMixed*Genotype*Country+(1|Site))
+summary(model)
+anova(model)
+#Create model2 to remove three-way interaction
+model2=update(model,~.-SingleMixed:Genotype:Country)
+#Do model comparison (which is based on ML instead of REML to account for different fixed effects structures)
+anova(model,model2)
+#This shows that the SingleMixed:Genotype:Country interaction is significant (Chi2=6.18, P=0.045)
+#Because the three-way interactions is significant, we retain it in the model; because of this we cannot compute P-values for other factors because we cannot remove these effects one at a time
+#The first model is thus the minimal model, now we just have to check it for normality of errors and homogeneity of variance
+plot(model)
+#looks good
+
+#Clearly, SingleMixed, Genotype and Country have significant effects too
+#Bolker suggests using nlme when wishing to calculate p values in well designed experiments
+#See this link: http://stats.stackexchange.com/questions/22988/significant-effect-in-lme4-mixed-model
+#So, let's try to run the same model in lme 
+library(nlme)
+model3=lme(Logpar~SingleMixed*Genotype*Country, random=~1|Site)
+summary(model3)
+anova(model3)
+output<-anova(model3)
+class(output)
+dim(output)
+output[2,4]
+#These are approximate p values only!
+
+#Note that a simpler linear model would essentially give the same result
+model4=aov(Logpar~SingleMixed*Genotype*Country)
+summary(model4)
+summary.lm(model4)
+
+##ANALYSIS OF ANGOLA ONLY TEST FOR EFFECTS OF AGE
+attach(Angoladata)
+names(Angoladata)
+
+#Do some basic plotting and modeling
+plot(MaxMOI,Logpar)
+#As expected, no increase in Logpar with increasing MaxMOI
+plot(Age,MaxMOI)
+model=lm(MaxMOI~Age)
+summary.aov(model)
+#No change in MOI with increasing age 
+
+#Plot Logpar by genotype, infection type and age
+par(mfrow=c(1,2),mar=c(4, 4, 2, 0.5),mgp=c(2.6, 0.8, 0))
+plot(Age,Logpar,main="Logpar by age",ylab="Logpar", xlab="Age",las=1,type="n")
+points(Age[SingleMixed=="Single"&Genotype=="S"], Logpar[SingleMixed=="Single"&Genotype=="S"], col="blue",pch=16)
+points(Age[SingleMixed=="Mixed"&Genotype=="S"], Logpar[SingleMixed=="Mixed"&Genotype=="S"], col="blue",pch=1)
+points(Age[SingleMixed=="Single"&Genotype=="R"], Logpar[SingleMixed=="Single"&Genotype=="R"], col="red",pch=16)
+points(Age[SingleMixed=="Mixed"&Genotype=="R"], Logpar[SingleMixed=="Mixed"&Genotype=="R"], col="red",pch=1)
+legend("bottomleft",c("S alone", "S in mixed", "R alone", "R in mixed"),cex=0.8,col=c("blue","blue","red","red"),pch=c(16,1,16,1))
+
+#Plot Logpar by Site, infection type and age
+plot(Age,Logpar,main="Logpar by age",ylab="Logpar", xlab="Age",las=1,type="n")
+points(Age[SingleMixed=="Single"&Site=="Uige"], Logpar[SingleMixed=="Single"&Site=="Uige"], col="blue",pch=16)
+points(Age[SingleMixed=="Mixed"&Site=="Uige"], Logpar[SingleMixed=="Mixed"&Site=="Uige"], col="blue",pch=1)
+points(Age[SingleMixed=="Single"&Site=="Zaire"], Logpar[SingleMixed=="Single"&Site=="Zaire"], col="red",pch=16)
+points(Age[SingleMixed=="Mixed"&Site=="Zaire"], Logpar[SingleMixed=="Mixed"&Site=="Zaire"], col="red",pch=1)
+legend("bottomleft",c("Uige single", "Uige mixed", "Zaire single", "Zaire mixed"),cex=0.8,col=c("blue","blue","red","red"),pch=c(16,1,16,1))
+
+model=aov(Logpar~Site)
+summary(model)
+
+#Run mixed effects model that includes Site as a random effect
+library(lme4)
+model=lmer(Logpar~SingleMixed*Genotype*Age+(1|Site))
+summary(model)
+#Model shows that Site does not explain significant variation, so it can be removed from the model
+#This means the model now essentially becomes a fixed effects linear model
+
+#Run simple linear model to analyse effects of age, genotype and infection type
+model=lm(Logpar~SingleMixed*Genotype*Age)
+summary(model)
+summary.aov(model)
+#Now remove non-significant terms sequentially, and compare models to make sure removed terms did not reduce explanatory power of model
+model2=update(model,~.-SingleMixed:Genotype:Age)
+anova(model,model2)
+model3=update(model2,~.-Genotype:Age)
+anova(model2,model3)
+model4=update(model3,~.-SingleMixed:Age)
+anova(model3,model4)
+model5=update(model4,~.-SingleMixed:Genotype)
+anova(model4,model5)
+summary.aov(model5)
+#Plot model to ensure normality of errors and homogeneity of variance
+plot(model5)
+#Looks good
+#Now assess significance of remaining terms by model comparison
+model6=update(model5,~.-Age)
+anova(model5,model6)
+model7=update(model5,~.-Genotype)
+anova(model5,model7)
+model8=update(model5,~.-SingleMixed)
+anova(model5,model8)
+
+##Prevalence analysis 16 Nov 2015
+#Ghana all timepoints
+ghana=matrix(c(33,111,28,69,107,40,36,57,14,75,86,19),nrow=4,byrow=T)
+ghana
+chisq.test(ghana)
+
+#Ghana subset timepoints
+ghana2=matrix(c(4,32,2,19,66,13,22,48,6,25,53,4),nrow=4,byrow=T)
+ghana2
+chisq.test(ghana2,simulate.p.value = TRUE)
+fisher.test(ghana2,workspace = 400000)
+
+#Angola
+angola=matrix(c(33,32,118,137,39,25),nrow=2)
+angola
+chisq.test(angola)
+
+
+###Overall density analysis 11-19-15
+
+#Attach: "Data Master File 2"
+totaldens=read.csv(file.choose())
+attach(totaldens)
+names(totaldens)
+
+##ANALYSIS ACROSS THREE COUNTRIES
+library(lme4)
+model=lmer(LogTotalPar~SingleMixed*Country+(1|Site))
+summary(model)
+anova(model)
+model2=update(model,~.-SingleMixed:Country)
+anova(model,model2)
+plot(model)
+model2b<-update(model,~.-SingleMixed)
+#The interaction between SingleMixed and COuntry is significant, and must be retained in the model
+
+#Let's try to run the same model in lme to obtain approximate P values
+library(nlme)
+model3=lme(LogTotalPar~SingleMixed*Country, random=~1|Site)
+summary(model3)
+anova(model3)
+#These are approximate p values only!
+
+##Analysis for Angola only to look for effects of age and MaxMOI
+Angoladata=subset(totaldens,Country=="Angola")
+detach(totaldens)
+attach(Angoladata)
+plot(Age,LogTotalPar)
+plot(Age,MaxMOI)
+plot(MaxMOI,LogTotalPar)
+
+model=lmer(LogTotalPar~Age*MaxMOI+(1|Site))
+summary(model)
+model2=update(model,~.-Age:MaxMOI)
+anova(model,model2)
+#Because site is not explaining variation, the model reduces to a simple linear model
+model3=lm(LogTotalPar~Age*MaxMOI)
+summary.aov(model3)
+model4=update(model3,~.-Age:MaxMOI)
+anova(model3,model4)
+summary.aov(model4)
+model5=update(model4,~.-MaxMOI)
+anova(model4,model5)
+model6=update(model4,~.-Age)
+anova(model4,model6)
+summary(model4)
+plot(model4)
+
+
+
+model=lm(MaxMOI~Age)
+summary(model)
+plot(model)
+model2=update(model,~.-Age)
+anova(model,model2)
+
+
+#The above analyses were based on single versus mixed, in which single could be CQS or CQR
+#Now run analyses where we distinguish CQS, CQR and CQS+CQR
+detach(Angoladata)
+attach(totaldens)
+plot(Genotype,LogTotalPar)
+model=lmer(LogTotalPar~Genotype*Country+(1|Site))
+summary(model)
+anova(model)
+model2=update(model,~.-Genotype:Country)
+anova(model,model2)
+anova(model2)
+model3<-lme(LogTotalPar~Genotype*Country, random=~1|Site)
+summary(model3)
+anova(model3)
+#This model indicates that Genotype and Country are significant
+par(mfrow=c(1,1))
+Angoladata=subset(totaldens,Country=="Angola")
+detach(totaldens)
+attach(Angoladata)
+plot(Genotype,MaxMOI)
+model=lmer(LogTotalPar~Age*Genotype*MaxMOI+(1|Site))
+summary(model)
+#Because site is not explaining variation, the model reduces to a simple linear model
+model2=lm(LogTotalPar~Age*Genotype*MaxMOI)
+summary.aov(model2)
+model3=update(model2,~.-Age:Genotype:MaxMOI)
+anova(model2,model3)
+summary.aov(model3)
+model4=update(model3,~.-Genotype:MaxMOI)
+anova(model3,model4)
+model5=update(model4,~.-Age:MaxMOI)
+anova(model4,model5)
+model6=update(model5,~.-Age:Genotype)
+anova(model5,model6)
+summary.aov(model6)
+model7=update(model6,~.-MaxMOI)
+anova(model6,model7)
+summary.aov(model7)
+model8=update(model7,~.-Genotype)
+model9=update(model7,~.-Age)
+anova(model7,model8)
+anova(model7,model9)
+summary(model7)
+
+
+####Third panel for Figure 2
+
+par(mfrow=c(1,1))
+plot(LogTotalPar~Age,xlab="Age (Years)",ylab=expression(paste(Log[10]," total parasite density")),cex.axis=1.5,cex.lab=1.5,ylim=c(1,5.5),type="n")
+colors<-c("deepskyblue","red","purple4")
+points(LogTotalPar[Genotype=="CQS"]~Age[Genotype=="CQS"],pch=16,col=colors[1],cex=1)
+points(LogTotalPar[Genotype=="CQR"]~Age[Genotype=="CQR"],pch=16,col=colors[2],cex=1)
+points(LogTotalPar[Genotype=="Mixed"]~Age[Genotype=="Mixed"],pch=16,col=colors[3],cex=1)
+abline(model7$coeff[1]+model7$coeff[3],model7$coeff[2],lwd=2.5,lty="dotted",col=colors[1])
+abline(model7$coeff[1],model7$coeff[2],lwd=2.5,lty="dotted",col=colors[2])
+abline(model7$coeff[1]+model7$coeff[4],model7$coeff[2],lwd=2.5,lty="dotted",col=colors[3])
+legend(6.3,2.35,legend=c("CQS","CQR","CQS+CQR"),col=c("deepskyblue","red","purple4"),pch=16,pt.cex=1.2,cex=1.2,x.intersp=0.5,box.col="grey50",bg="white",box.lwd=2)
+######
+
+##TEMPORAL ANALYSIS GHANA
+
+#Attach: "CQR Decline Data"
+declinedata=read.csv(file.choose())
+detach(Angoladata)
+attach(declinedata)
+names(declinedata)
+colnames(declinedata)[1:2]<-c("CQRplus","CQRminus")
+attach(declinedata)
+#Bind the CQRplus and CQRminus data into a bivariate data matrix
+y=cbind(CQRplus,CQRminus)
+
+#Carry out mixed model analysis; R suggests using glmer instead of lmer
+#Note (1|Datapoint) is included as random effect to account for overdispersion
+declinedata2<-cbind(declinedata,1:16)
+colnames(declinedata2)[5]<-"Datapoint"
+detach(declinedata)
+attach(declinedata2)
+model=glmer(y~Time+(1|Location)+(1|Datapoint),family=binomial,data=declinedata)
+summary(model)
+model2=glmer(y~(1|Location)+(1|Datapoint),family=binomial,data=declinedata)
+anova(model,model2)
+plot(model)
+
